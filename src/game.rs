@@ -26,40 +26,42 @@ pub struct Sheet {
     frames: HashMap<String, Cell>,
 }
 
-pub struct WalkTheDog {
-    rhb: Option<RedHatBoy>,
+pub enum WalkTheDog {
+    Loading,
+    Loaded(RedHatBoy),
 }
 
 impl WalkTheDog {
     pub fn new() -> Self {
-        WalkTheDog {
-            rhb: None,
-        }
+        WalkTheDog::Loading
     }
 }
 
 #[async_trait(?Send)]
 impl Game for WalkTheDog {
     async fn initialize(&self) -> Result<Box<dyn Game>> {
-        let sheet: Option<Sheet> = browser::fetch_json("rhb.json")
-            .await?
-            .into_serde()?;
-        let image = Some(engine::load_image("rhb.png").await?);
-        Ok(Box::new(WalkTheDog {
-            rhb: Some(RedHatBoy::new(
-                sheet.clone().ok_or_else(|| anyhow!("No Sheet Present."))?,
-                image.clone().ok_or_else(|| anyhow!("No Image Present."))?,
-            )),
-        }))
+        match self {
+            WalkTheDog::Loading => {
+                let json = browser::fetch_json("rhb.json").await?;
+                let rhb = RedHatBoy::new(
+                    json.into_serde::<Sheet>()?,
+                    engine::load_image("rhb.png").await?,
+                );
+                Ok(Box::new(WalkTheDog::Loaded(rhb)))
+            },
+            WalkTheDog::Loaded(_) => Err(anyhow!("Error: Game is already initialized.")),
+        }
     }
     fn update(&mut self, keystate: &KeyState) {
-        if keystate.is_pressed("ArrowRight") {
-            self.rhb.as_mut().unwrap().run_right();
+        if let WalkTheDog::Loaded(rhb) = self {
+            if keystate.is_pressed("ArrowRight") {
+                rhb.run_right();
+            }
+            if keystate.is_pressed("ArrowDown") {
+                rhb.slide();
+            }
+            rhb.update();
         }
-        if keystate.is_pressed("ArrowDown") {
-            self.rhb.as_mut().unwrap().slide();
-        }
-        self.rhb.as_mut().unwrap().update();
     }
     fn draw(&self, renderer: &Renderer) {
         renderer.clear(&Rect {
@@ -68,11 +70,13 @@ impl Game for WalkTheDog {
             width: 600.0,
             height: 600.0,
         });
-        self.rhb.as_ref().unwrap().draw(renderer);
+        if let WalkTheDog::Loaded(rhb) = self {
+            rhb.draw(renderer);
+        }
     }
 }
 
-struct RedHatBoy {
+pub struct RedHatBoy {
     state_machine: RedHatBoyStateMachine,
     sprite_sheet: Sheet,
     image: HtmlImageElement,
