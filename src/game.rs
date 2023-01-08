@@ -3,7 +3,7 @@ use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use serde::Deserialize;
 use crate::{browser, engine};
-use crate::engine::{Rect, KeyState, Point};
+use crate::engine::{Rect, KeyState};
 use std::collections::HashMap;
 use web_sys::HtmlImageElement;
 use self::red_hat_boy_states::*;
@@ -134,6 +134,7 @@ impl RedHatBoy {
 pub enum Event {
     Run,
     Slide,
+    Update,
 }
 
 #[derive(Copy, Clone)]
@@ -141,6 +142,12 @@ enum RedHatBoyStateMachine {
     Idle(RedHatBoyState<Idle>),
     Running(RedHatBoyState<Running>),
     Sliding(RedHatBoyState<Sliding>),
+}
+
+impl From<RedHatBoyState<Idle>> for RedHatBoyStateMachine {
+    fn from(state: RedHatBoyState<Idle>) -> Self {
+        RedHatBoyStateMachine::Idle(state)
+    }
 }
 
 impl From<RedHatBoyState<Running>> for RedHatBoyStateMachine {
@@ -155,11 +162,23 @@ impl From<RedHatBoyState<Sliding>> for RedHatBoyStateMachine {
     }
 }
 
+impl From<SlidingEndState> for RedHatBoyStateMachine {
+    fn from(end_state: SlidingEndState) -> Self {
+        match end_state {
+            SlidingEndState::Complete(running_state) => running_state.into(),
+            SlidingEndState::Sliding(sliding_state) => sliding_state.into(),
+        }
+    }
+}
+
 impl RedHatBoyStateMachine {
     fn transition(self, event: Event) -> Self {
         match (self, event) {
             (RedHatBoyStateMachine::Idle(state), Event::Run) => state.run().into(),
             (RedHatBoyStateMachine::Running(state), Event::Slide) => state.slide().into(),
+            (RedHatBoyStateMachine::Idle(state), Event::Update) => state.update().into(),
+            (RedHatBoyStateMachine::Running(state), Event::Update) => state.update().into(),
+            (RedHatBoyStateMachine::Sliding(state), Event::Update) => state.update().into(),
             _ => self,
         }
     }
@@ -181,20 +200,7 @@ impl RedHatBoyStateMachine {
     }
 
     fn update(self) -> Self {
-        match self {
-            RedHatBoyStateMachine::Idle(mut state) => {
-                state.update();
-                RedHatBoyStateMachine::Idle(state)
-            },
-            RedHatBoyStateMachine::Running(mut state) => {
-                state.update();
-                RedHatBoyStateMachine::Running(state)
-            },
-            RedHatBoyStateMachine::Sliding(mut state) => {
-                state.update();
-                RedHatBoyStateMachine::Sliding(state)
-            },
-        }
+        self.transition(Event::Update)
     }
 }
 
@@ -269,7 +275,7 @@ mod red_hat_boy_states {
             }
         }
 
-        pub fn run(mut self) -> RedHatBoyState<Running> {
+        pub fn run(self) -> RedHatBoyState<Running> {
             RedHatBoyState {
                 context: self.context.reset_frame().run_right(),
                 _state: Running {},
@@ -280,8 +286,9 @@ mod red_hat_boy_states {
             IDLE_FRAME_NAME
         }
 
-        pub fn update(&mut self) {
+        pub fn update(mut self) -> Self {
             self.context = self.context.update(IDLE_FRAMES);
+            self
         }
     }
 
@@ -293,8 +300,9 @@ mod red_hat_boy_states {
             RUN_FRAME_NAME
         }
 
-        pub fn update(&mut self) {
+        pub fn update(mut self) -> Self {
             self.context = self.context.update(RUNNING_FRAMES);
+            self
         }
 
         pub fn slide(self) -> RedHatBoyState<Sliding> {
@@ -312,8 +320,25 @@ mod red_hat_boy_states {
             SLIDING_FRAME_NAME
         }
 
-        pub fn update(&mut self) {
+        pub fn update(mut self) -> SlidingEndState {
             self.context = self.context.update(SLIDING_FRAMES);
+            if self.context.frame >= SLIDING_FRAMES {
+                SlidingEndState::Complete(self.stand())
+            } else {
+                SlidingEndState::Sliding(self)
+            }
         }
+
+        pub fn stand(self) -> RedHatBoyState<Running> {
+            RedHatBoyState {
+                context: self.context.reset_frame(),
+                _state: Running,
+            }
+        }
+    }
+
+    pub enum SlidingEndState {
+        Complete(RedHatBoyState<Running>),
+        Sliding(RedHatBoyState<Sliding>),
     }
 }
