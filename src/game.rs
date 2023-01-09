@@ -235,7 +235,8 @@ impl RedHatBoyStateMachine {
 
 mod red_hat_boy_states {
     use crate::engine::Point;
-    const FLOOR: i16 = 475;
+    const FLOOR: i16 = 479;
+    const STARTING_POINT: i16 = -20;
     const RUNNING_SPEED: i16 = 3;
     const JUMP_SPEED: i16 = -25;
     const GRAVITY: i16 = 1;
@@ -311,7 +312,7 @@ mod red_hat_boy_states {
             RedHatBoyState {
                 context: RedHatBoyContext {
                     frame: 0,
-                    position: Point { x: 0, y: FLOOR },
+                    position: Point { x: STARTING_POINT, y: FLOOR },
                     velocity: Point { x: 0, y: 0 },
                 },
                 _state: Idle {},
