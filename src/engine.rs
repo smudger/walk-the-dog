@@ -10,6 +10,27 @@ use crate::browser::LoopClosure;
 use async_trait::async_trait;
 use futures::channel::mpsc::{UnboundedReceiver, unbounded};
 use std::collections::HashMap;
+use serde::Deserialize;
+
+#[derive(Deserialize, Clone)]
+pub struct SheetRect {
+    pub x: i16,
+    pub y: i16,
+    pub w: i16,
+    pub h: i16,
+}
+
+#[derive(Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Cell {
+    pub frame: SheetRect,
+    pub sprite_source_size: SheetRect,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct Sheet {
+    pub frames: HashMap<String, Cell>,
+}
 
 pub async fn load_image(source: &str) -> Result<HtmlImageElement>
 {

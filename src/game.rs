@@ -1,30 +1,11 @@
 use crate::engine::{Game, Renderer};
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
-use serde::Deserialize;
 use crate::{browser, engine};
-use crate::engine::{Rect, KeyState, Image, Point};
+use crate::engine::{Rect, KeyState, Image, Point, Sheet};
 use std::collections::HashMap;
 use web_sys::HtmlImageElement;
 use self::red_hat_boy_states::*;
-
-#[derive(Deserialize, Clone)]
-struct SheetRect {
-    x: i16,
-    y: i16,
-    w: i16,
-    h: i16,
-}
-
-#[derive(Deserialize, Clone)]
-struct Cell {
-    frame: SheetRect,
-}
-
-#[derive(Deserialize, Clone)]
-pub struct Sheet {
-    frames: HashMap<String, Cell>,
-}
 
 pub enum WalkTheDog {
     Loading,
@@ -125,10 +106,10 @@ impl RedHatBoy {
             .get(&frame_name)
             .expect("Cell not found.");
         let bounding_box = Rect {
-            x: self.state_machine.context()
-                .position.x.into(),
-            y: self.state_machine.context()
-                .position.y.into(),
+            x: (self.state_machine.context()
+                .position.x + sprite.sprite_source_size.x as i16).into(),
+            y: (self.state_machine.context()
+                .position.y + sprite.sprite_source_size.y as i16).into(),
             width: sprite.frame.w.into(),
             height: sprite.frame.h.into(),
         };
