@@ -124,6 +124,14 @@ impl RedHatBoy {
             .frames
             .get(&frame_name)
             .expect("Cell not found.");
+        let bounding_box = Rect {
+            x: self.state_machine.context()
+                .position.x.into(),
+            y: self.state_machine.context()
+                .position.y.into(),
+            width: sprite.frame.w.into(),
+            height: sprite.frame.h.into(),
+        };
         renderer.draw_image(
             &self.image,
             &Rect {
@@ -132,15 +140,9 @@ impl RedHatBoy {
                 width: sprite.frame.w.into(),
                 height: sprite.frame.h.into(),
             },
-            &Rect {
-                x: self.state_machine.context()
-                    .position.x.into(),
-                y: self.state_machine.context()
-                    .position.y.into(),
-                width: sprite.frame.w.into(),
-                height: sprite.frame.h.into(),
-            },
+            &bounding_box,
         );
+        renderer.draw_rect(&bounding_box);
     }
 
     fn run_right(&mut self) {
