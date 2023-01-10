@@ -234,7 +234,7 @@ impl From<RedHatBoyState<Jumping>> for RedHatBoyStateMachine {
 impl From<JumpingEndState> for RedHatBoyStateMachine {
     fn from(end_state: JumpingEndState) -> Self {
         match end_state {
-            JumpingEndState::Complete(running_state) => running_state.into(),
+            JumpingEndState::Landing(running_state) => running_state.into(),
             JumpingEndState::Jumping(jumping_state) => jumping_state.into(),
         }
     }
@@ -264,18 +264,20 @@ impl From<RedHatBoyState<KnockedOut>> for RedHatBoyStateMachine {
 impl RedHatBoyStateMachine {
     fn transition(self, event: Event) -> Self {
         match (self, event) {
+            (RedHatBoyStateMachine::Falling(state), Event::Update) => state.update().into(),
             (RedHatBoyStateMachine::Idle(state), Event::Run) => state.run().into(),
-            (RedHatBoyStateMachine::Running(state), Event::Slide) => state.slide().into(),
-            (RedHatBoyStateMachine::Running(state), Event::Jump) => state.jump().into(),
-            (RedHatBoyStateMachine::Running(state), Event::KnockOut) => state.knock_out().into(),
+            (RedHatBoyStateMachine::Idle(state), Event::Update) => state.update().into(),
             (RedHatBoyStateMachine::Jumping(state), Event::KnockOut) => state.knock_out().into(),
             (RedHatBoyStateMachine::Jumping(state), Event::Land(position)) => state.land_on(position).into(),
-            (RedHatBoyStateMachine::Sliding(state), Event::KnockOut) => state.knock_out().into(),
-            (RedHatBoyStateMachine::Idle(state), Event::Update) => state.update().into(),
-            (RedHatBoyStateMachine::Running(state), Event::Update) => state.update().into(),
-            (RedHatBoyStateMachine::Sliding(state), Event::Update) => state.update().into(),
             (RedHatBoyStateMachine::Jumping(state), Event::Update) => state.update().into(),
-            (RedHatBoyStateMachine::Falling(state), Event::Update) => state.update().into(),
+            (RedHatBoyStateMachine::Running(state), Event::Jump) => state.jump().into(),
+            (RedHatBoyStateMachine::Running(state), Event::KnockOut) => state.knock_out().into(),
+            (RedHatBoyStateMachine::Running(state), Event::Land(position)) => state.land_on(position).into(),
+            (RedHatBoyStateMachine::Running(state), Event::Slide) => state.slide().into(),
+            (RedHatBoyStateMachine::Running(state), Event::Update) => state.update().into(),
+            (RedHatBoyStateMachine::Sliding(state), Event::KnockOut) => state.knock_out().into(),
+            (RedHatBoyStateMachine::Sliding(state), Event::Update) => state.update().into(),
+            (RedHatBoyStateMachine::Sliding(state), Event::Land(position)) => state.land_on(position).into(),
             _ => self,
         }
     }
@@ -307,13 +309,19 @@ impl RedHatBoyStateMachine {
     }
 }
 
+const HEIGHT: i16 = 600;
+
 mod red_hat_boy_states {
     use crate::engine::Point;
+    use super::HEIGHT;
+
     const FLOOR: i16 = 479;
+    const PLAYER_HEIGHT: i16 = HEIGHT - FLOOR;
     const STARTING_POINT: i16 = -20;
     const RUNNING_SPEED: i16 = 3;
     const JUMP_SPEED: i16 = -25;
     const GRAVITY: i16 = 1;
+    const TERMINAL_VELOCITY: i16 = 20;
 
     const IDLE_FRAME_NAME: &str = "Idle";
     const IDLE_FRAMES: u8 = 29;
@@ -351,7 +359,9 @@ mod red_hat_boy_states {
 
     impl RedHatBoyContext {
         pub fn update(mut self, frame_count: u8) -> Self {
-            self.velocity.y += GRAVITY;
+            if self.velocity.y < TERMINAL_VELOCITY {
+                self.velocity.y += GRAVITY;
+            }
             if self.frame < frame_count {
                 self.frame += 1;
             } else {
@@ -382,6 +392,12 @@ mod red_hat_boy_states {
 
         fn stop(mut self) -> Self {
             self.velocity.x = 0;
+            self
+        }
+
+        fn set_on(mut self, position: i16) -> Self {
+            let position = position - PLAYER_HEIGHT;
+            self.position.y = position;
             self
         }
     }
@@ -451,6 +467,13 @@ mod red_hat_boy_states {
                 _state: Falling {},
             }
         }
+
+        pub fn land_on(self, position: f32) -> RedHatBoyState<Running> {
+            RedHatBoyState {
+                context: self.context.set_on(position as i16),
+                _state: Running {},
+            }
+        }
     }
 
      #[derive(Copy, Clone)]
@@ -483,6 +506,13 @@ mod red_hat_boy_states {
                 _state: Falling,
             }
         }
+
+        pub fn land_on(self, position: f32) -> RedHatBoyState<Sliding> {
+            RedHatBoyState {
+                context: self.context.set_on(position as i16),
+                _state: Sliding {},
+            }
+        }
     }
 
     pub enum SlidingEndState {
@@ -500,24 +530,16 @@ mod red_hat_boy_states {
         
         pub fn update(mut self) -> JumpingEndState {
             self.context = self.context.update(JUMPING_FRAMES);
-            if self.context.frame >= JUMPING_FRAMES {
-                JumpingEndState::Complete(self.land())
+            if self.context.position.y >= FLOOR {
+                JumpingEndState::Landing(self.land_on(HEIGHT.into()))
             } else {
                 JumpingEndState::Jumping(self)
             }
         }
 
-        pub fn land(self) -> RedHatBoyState<Running> {
+        pub fn land_on(self, position: f32) -> RedHatBoyState<Running> {
             RedHatBoyState {
-                context: self.context.reset_frame(),
-                _state: Running,
-            }
-        }
-
-        pub fn land_on(mut self, position: f32) -> RedHatBoyState<Running> {
-            self.context.position.y = position as i16;
-            RedHatBoyState {
-                context: self.context.reset_frame(),
+                context: self.context.reset_frame().set_on(position as i16),
                 _state: Running,
             }
         }
@@ -531,7 +553,7 @@ mod red_hat_boy_states {
     }
 
     pub enum JumpingEndState {
-        Complete(RedHatBoyState<Running>),
+        Landing(RedHatBoyState<Running>),
         Jumping(RedHatBoyState<Jumping>),
     }
 
