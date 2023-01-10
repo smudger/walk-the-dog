@@ -6,6 +6,11 @@ use crate::engine::{Rect, KeyState, Image, Point, Sheet, Cell};
 use web_sys::HtmlImageElement;
 use self::red_hat_boy_states::*;
 
+const HEIGHT: i16 = 600;
+const LOW_PLATFORM: i16 = 420;
+const HIGH_PLATFORM: i16 = 375;
+const FIRST_PLATFORM: i16 = 370;
+
 pub enum WalkTheDog {
     Loading,
     Loaded(Walk),
@@ -40,7 +45,7 @@ impl Game for WalkTheDog {
                 let platform = Platform::new(
                     platform_sheet.into_serde::<Sheet>()?,
                     engine::load_image("tiles.png").await?,
-                    Point { x: 200, y: 400 },
+                    Point { x: FIRST_PLATFORM, y: HIGH_PLATFORM },
                 );
                 Ok(Box::new(WalkTheDog::Loaded(Walk {
                     boy: rhb,
@@ -335,8 +340,6 @@ impl RedHatBoyStateMachine {
     }
 }
 
-const HEIGHT: i16 = 600;
-
 mod red_hat_boy_states {
     use crate::engine::Point;
     use super::HEIGHT;
@@ -344,7 +347,7 @@ mod red_hat_boy_states {
     const FLOOR: i16 = 479;
     const PLAYER_HEIGHT: i16 = HEIGHT - FLOOR;
     const STARTING_POINT: i16 = -20;
-    const RUNNING_SPEED: i16 = 3;
+    const RUNNING_SPEED: i16 = 4;
     const JUMP_SPEED: i16 = -25;
     const GRAVITY: i16 = 1;
     const TERMINAL_VELOCITY: i16 = 20;
@@ -418,6 +421,7 @@ mod red_hat_boy_states {
 
         fn stop(mut self) -> Self {
             self.velocity.x = 0;
+            self.velocity.y = 0;
             self
         }
 
