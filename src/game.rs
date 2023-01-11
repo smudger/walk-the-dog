@@ -2,7 +2,7 @@ use crate::engine::{Game, Renderer};
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use crate::{browser, engine};
-use crate::engine::{Rect, KeyState, Image, Point, Sheet, Cell};
+use crate::engine::{Rect, KeyState, Image, Point, Sheet, Cell, SpriteSheet};
 use web_sys::HtmlImageElement;
 use self::red_hat_boy_states::*;
 
@@ -49,8 +49,10 @@ impl Game for WalkTheDog {
                 let stone = engine::load_image("Stone.png").await?;
                 let platform_sheet = browser::fetch_json("tiles.json").await?;
                 let platform = Platform::new(
-                    platform_sheet.into_serde::<Sheet>()?,
-                    engine::load_image("tiles.png").await?,
+                    SpriteSheet::new(
+                        platform_sheet.into_serde::<Sheet>()?,
+                        engine::load_image("tiles.png").await?,
+                    ),
                     Point { x: FIRST_PLATFORM, y: HIGH_PLATFORM },
                 );
                 Ok(Box::new(WalkTheDog::Loaded(Walk {
@@ -673,26 +675,24 @@ mod red_hat_boy_states {
     }
 }
 
-struct Platform {
-    sheet: Sheet,
-    image: HtmlImageElement,
+pub struct Platform {
+    sheet: SpriteSheet,
     position: Point,
 }
 
 impl Obstacle for Platform {
     fn draw(&self, renderer: &Renderer) {
-        let platform = self
+        let cell = self
             .sheet
-            .frames
-            .get("13.png")
+            .cell("13.png")
             .expect("13.png does not exist.");
-        renderer.draw_image(
-            &self.image,
+        self.sheet.draw(
+            renderer,
             &Rect::new_from_x_y(
-                platform.frame.x,
-                platform.frame.y,
-                platform.frame.w * 3,
-                platform.frame.h,
+                cell.frame.x,
+                cell.frame.y,
+                cell.frame.w * 3,
+                cell.frame.h,
             ),
             &self.destination_box(),
         );
@@ -725,25 +725,23 @@ impl Obstacle for Platform {
 }
 
 impl Platform {
-    fn new(sheet: Sheet, image: HtmlImageElement, position: Point) -> Self {
+    fn new(sheet: SpriteSheet, position: Point) -> Self {
         Platform {
             sheet,
-            image,
             position,
         }
     }
 
     fn destination_box(&self) -> Rect {
-        let platform = self
+        let cell = self
             .sheet
-            .frames
-            .get("13.png")
+            .cell("13.png")
             .expect("13.png does not exist.");
         Rect::new_from_x_y(
             self.position.x,
             self.position.y,
-            platform.frame.w * 3,
-            platform.frame.h,
+            cell.frame.w * 3,
+            cell.frame.h,
         )
     }
 
