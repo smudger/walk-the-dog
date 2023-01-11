@@ -19,8 +19,7 @@ pub enum WalkTheDog {
 pub struct Walk {
     boy: RedHatBoy,
     backgrounds: [Image; 2],
-    stone: Image,
-    platform: Box<dyn Obstacle>,
+    obstacles: Vec<Box<dyn Obstacle>>,
 }
 
 impl Walk {
@@ -60,8 +59,10 @@ impl Game for WalkTheDog {
                         Image::new(background.clone(), Point { x: 0, y: 0 }),
                         Image::new(background, Point { x: background_width, y: 0 }),
                     ],
-                    stone: Image::new(stone, Point { x: 150, y: 546 }),
-                    platform: Box::new(platform),
+                    obstacles: vec![
+                        Box::new(Barrier::new(Image::new(stone, Point { x: 150, y: 546 }))),
+                        Box::new(platform),
+                    ],
                 })))
             },
             WalkTheDog::Loaded(_) => Err(anyhow!("Error: Game is already initialized.")),
@@ -78,10 +79,10 @@ impl Game for WalkTheDog {
             if keystate.is_pressed("Space") {
                 walk.boy.jump();
             }
+
             walk.boy.update();
+
             let velocity = walk.velocity();
-            walk.platform.move_horizontally(velocity);
-            walk.stone.move_horizontally(velocity);
             let [first_background, second_background] = &mut walk.backgrounds;
             first_background.move_horizontally(velocity);
             second_background.move_horizontally(velocity);
@@ -92,15 +93,10 @@ impl Game for WalkTheDog {
                 second_background.set_x(first_background.right());
             }
 
-            walk.platform.check_intersection(&mut walk.boy);
-
-            if walk
-                .boy
-                .bounding_box()
-                .intersects(walk.stone.bounding_box())
-            {
-                walk.boy.knock_out();
-            }
+            walk.obstacles.iter_mut().for_each(|obstacle| {
+                obstacle.move_horizontally(velocity);
+                obstacle.check_intersection(&mut walk.boy);
+            });
         }
     }
     fn draw(&self, renderer: &Renderer) {
@@ -110,8 +106,9 @@ impl Game for WalkTheDog {
                 background.draw(renderer);
             });
             walk.boy.draw(renderer);
-            walk.stone.draw(renderer);
-            walk.platform.draw(renderer);
+            walk.obstacles.iter().for_each(|obstacle| {
+                obstacle.draw(renderer);
+            });
         }
     }
 }
@@ -120,6 +117,32 @@ pub trait Obstacle {
     fn check_intersection(&self, boy: &mut RedHatBoy);
     fn draw(&self, renderer: &Renderer);
     fn move_horizontally(&mut self, x: i16);
+}
+
+pub struct Barrier {
+    image: Image,
+}
+
+impl Obstacle for Barrier {
+    fn check_intersection(&self, boy: &mut RedHatBoy) {
+        if boy.bounding_box().intersects(self.image.bounding_box()) {
+            boy.knock_out()
+        }
+    }
+
+    fn draw(&self, renderer: &Renderer) {
+        self.image.draw(renderer);
+    }
+
+    fn move_horizontally(&mut self, x: i16) {
+        self.image.move_horizontally(x);
+    }
+}
+
+impl Barrier {
+    pub fn new(image: Image) -> Self {
+        Barrier { image }
+    }
 }
 
 pub struct RedHatBoy {
