@@ -82,9 +82,15 @@ impl Game for WalkTheDog {
             walk.platform.position.x += walk.velocity();
             walk.stone.move_horizontally(walk.velocity());
             let velocity = walk.velocity();
-            walk.backgrounds.iter_mut().for_each(|background| {
-                background.move_horizontally(velocity);
-            });
+            let [first_background, second_background] = &mut walk.backgrounds;
+            first_background.move_horizontally(velocity);
+            second_background.move_horizontally(velocity);
+            if first_background.right() < 0 {
+                first_background.set_x(second_background.right());
+            }
+            if second_background.right() < 0 {
+                second_background.set_x(first_background.right());
+            }
             for bounding_box in &walk.platform.bounding_boxes() {
                 if walk
                     .boy
