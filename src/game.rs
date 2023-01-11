@@ -20,7 +20,7 @@ pub struct Walk {
     boy: RedHatBoy,
     backgrounds: [Image; 2],
     stone: Image,
-    platform: Platform,
+    platform: Box<dyn Obstacle>,
 }
 
 impl Walk {
@@ -61,7 +61,7 @@ impl Game for WalkTheDog {
                         Image::new(background, Point { x: background_width, y: 0 }),
                     ],
                     stone: Image::new(stone, Point { x: 150, y: 546 }),
-                    platform,
+                    platform: Box::new(platform),
                 })))
             },
             WalkTheDog::Loaded(_) => Err(anyhow!("Error: Game is already initialized.")),
@@ -79,9 +79,9 @@ impl Game for WalkTheDog {
                 walk.boy.jump();
             }
             walk.boy.update();
-            walk.platform.position.x += walk.velocity();
-            walk.stone.move_horizontally(walk.velocity());
             let velocity = walk.velocity();
+            walk.platform.move_horizontally(velocity);
+            walk.stone.move_horizontally(velocity);
             let [first_background, second_background] = &mut walk.backgrounds;
             first_background.move_horizontally(velocity);
             second_background.move_horizontally(velocity);
@@ -91,19 +91,9 @@ impl Game for WalkTheDog {
             if second_background.right() < 0 {
                 second_background.set_x(first_background.right());
             }
-            for bounding_box in &walk.platform.bounding_boxes() {
-                if walk
-                    .boy
-                    .bounding_box()
-                    .intersects(bounding_box)
-                {
-                    if walk.boy.velocity_y() > 0 && walk.boy.pos_y() < walk.platform.position.y {
-                        walk.boy.land_on(bounding_box.y());
-                    } else {
-                        walk.boy.knock_out();
-                    }
-                }
-            }
+
+            walk.platform.check_intersection(&mut walk.boy);
+
             if walk
                 .boy
                 .bounding_box()
@@ -124,6 +114,12 @@ impl Game for WalkTheDog {
             walk.platform.draw(renderer);
         }
     }
+}
+
+pub trait Obstacle {
+    fn check_intersection(&self, boy: &mut RedHatBoy);
+    fn draw(&self, renderer: &Renderer);
+    fn move_horizontally(&mut self, x: i16);
 }
 
 pub struct RedHatBoy {
@@ -654,6 +650,44 @@ struct Platform {
     position: Point,
 }
 
+impl Obstacle for Platform {
+    fn draw(&self, renderer: &Renderer) {
+        let platform = self
+            .sheet
+            .frames
+            .get("13.png")
+            .expect("13.png does not exist.");
+        renderer.draw_image(
+            &self.image,
+            &Rect::new_from_x_y(
+                platform.frame.x,
+                platform.frame.y,
+                platform.frame.w * 3,
+                platform.frame.h,
+            ),
+            &self.destination_box(),
+        );
+    }
+
+    fn move_horizontally(&mut self, x: i16) {
+        self.position.x += x;
+    }
+
+    fn check_intersection(&self, boy: &mut RedHatBoy) {
+        if let Some(box_to_land_on) = self
+            .bounding_boxes()
+            .iter()
+            .find(|&bounding_box| boy.bounding_box().intersects(bounding_box))
+        {
+            if boy.velocity_y() > 0 && boy.pos_y() < self.position.y {
+                boy.land_on(box_to_land_on.y());
+            } else {
+                boy.knock_out();
+            }
+        }
+    }
+}
+
 impl Platform {
     fn new(sheet: Sheet, image: HtmlImageElement, position: Point) -> Self {
         Platform {
@@ -700,23 +734,5 @@ impl Platform {
             END_HEIGHT,
         );
         vec![bounding_box_one, bounding_box_two, bounding_box_three]
-    }
-
-    fn draw(&self, renderer: &Renderer) {
-        let platform = self
-            .sheet
-            .frames
-            .get("13.png")
-            .expect("13.png does not exist.");
-        renderer.draw_image(
-            &self.image,
-            &Rect::new_from_x_y(
-                platform.frame.x,
-                platform.frame.y,
-                platform.frame.w * 3,
-                platform.frame.h,
-            ),
-            &self.destination_box(),
-        );
     }
 }
