@@ -178,7 +178,6 @@ impl RedHatBoy {
             },
             &self.destination_box(),
         );
-        renderer.draw_rect(&self.bounding_box());
     }
 
     fn run_right(&mut self) {
@@ -697,8 +696,5 @@ impl Platform {
             },
             &self.destination_box(),
         );
-        for bounding_box in &self.bounding_boxes() {
-            renderer.draw_rect(bounding_box);
-        }
     }
 }
