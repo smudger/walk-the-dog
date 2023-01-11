@@ -56,7 +56,13 @@ impl Game for WalkTheDog {
                 ));
                 let platform = Platform::new(
                     sprite_sheet.clone(),
-                    Point { x: FIRST_PLATFORM, y: HIGH_PLATFORM },
+                    Point { x: FIRST_PLATFORM, y: LOW_PLATFORM },
+                    &["13.png", "14.png", "15.png"],
+                    &[
+                        Rect::new_from_x_y(0, 0, 60, 54),
+                        Rect::new_from_x_y(60, 0, 384 - (60 * 2), 93),
+                        Rect::new_from_x_y(384 - 60, 0, 60, 54),
+                    ]
                 );
                 Ok(Box::new(WalkTheDog::Loaded(Walk {
                     boy: rhb,
@@ -681,29 +687,40 @@ mod red_hat_boy_states {
 
 pub struct Platform {
     sheet: Rc<SpriteSheet>,
+    bounding_boxes: Vec<Rect>,
+    sprites: Vec<Cell>,
     position: Point,
 }
 
 impl Obstacle for Platform {
     fn draw(&self, renderer: &Renderer) {
-        let cell = self
-            .sheet
-            .cell("13.png")
-            .expect("13.png does not exist.");
-        self.sheet.draw(
-            renderer,
-            &Rect::new_from_x_y(
-                cell.frame.x,
-                cell.frame.y,
-                cell.frame.w * 3,
-                cell.frame.h,
-            ),
-            &self.destination_box(),
-        );
+        let mut x = 0;
+        self.sprites.iter().for_each(|sprite| {
+            self.sheet.draw(
+                renderer,
+                &Rect::new_from_x_y(
+                    sprite.frame.x,
+                    sprite.frame.y,
+                    sprite.frame.w,
+                    sprite.frame.h,
+                ),
+                &Rect::new_from_x_y(
+                    self.position.x + x,
+                    self.position.y,
+                    sprite.frame.w,
+                    sprite.frame.h,
+                ),
+            );
+            x += sprite.frame.w;
+        });
     }
 
     fn move_horizontally(&mut self, x: i16) {
         self.position.x += x;
+        self.bounding_boxes.iter_mut()
+            .for_each(|bounding_box| {
+                bounding_box.set_x(bounding_box.position.x + x);
+            });
     }
 
     fn check_intersection(&self, boy: &mut RedHatBoy) {
@@ -729,48 +746,36 @@ impl Obstacle for Platform {
 }
 
 impl Platform {
-    pub fn new(sheet: Rc<SpriteSheet>, position: Point) -> Self {
+    pub fn new(
+        sheet: Rc<SpriteSheet>,
+        position: Point,
+        sprite_names: &[&str],
+        bounding_boxes: &[Rect],
+    ) -> Self {
+        let sprites = sprite_names
+            .iter()
+            .filter_map(|sprite_name| sheet.cell(sprite_name).cloned())
+            .collect();
+        let bounding_boxes = bounding_boxes
+            .iter()
+            .map(|bounding_box| {
+                Rect::new_from_x_y(
+                    bounding_box.x() + position.x,
+                    bounding_box.y() + position.y,
+                    bounding_box.width,
+                    bounding_box.height,
+                )
+            })
+            .collect();
         Platform {
             sheet,
             position,
+            sprites,
+            bounding_boxes,
         }
     }
 
-    fn destination_box(&self) -> Rect {
-        let cell = self
-            .sheet
-            .cell("13.png")
-            .expect("13.png does not exist.");
-        Rect::new_from_x_y(
-            self.position.x,
-            self.position.y,
-            cell.frame.w * 3,
-            cell.frame.h,
-        )
-    }
-
-    fn bounding_boxes(&self) -> Vec<Rect> {
-        const X_OFFSET: i16 = 60;
-        const END_HEIGHT: i16 = 54;
-        let destination_box = self.destination_box();
-        let bounding_box_one = Rect::new_from_x_y(
-            destination_box.x(),
-            destination_box.y(),
-            X_OFFSET,
-            END_HEIGHT,
-        );
-        let bounding_box_two = Rect::new_from_x_y(
-            destination_box.x() + X_OFFSET,
-            destination_box.y(),
-            destination_box.width - (X_OFFSET * 2),
-            destination_box.height,
-        );
-        let bounding_box_three = Rect::new_from_x_y(
-            destination_box.x() + destination_box.width - X_OFFSET,
-            destination_box.y(),
-            X_OFFSET,
-            END_HEIGHT,
-        );
-        vec![bounding_box_one, bounding_box_two, bounding_box_three]
+    fn bounding_boxes(&self) -> &Vec<Rect> {
+        &self.bounding_boxes
     }
 }
