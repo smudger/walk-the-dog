@@ -93,6 +93,7 @@ impl Game for WalkTheDog {
                 second_background.set_x(first_background.right());
             }
 
+            walk.obstacles.retain(|obstacle| obstacle.right() > 0);
             walk.obstacles.iter_mut().for_each(|obstacle| {
                 obstacle.move_horizontally(velocity);
                 obstacle.check_intersection(&mut walk.boy);
@@ -117,6 +118,7 @@ pub trait Obstacle {
     fn check_intersection(&self, boy: &mut RedHatBoy);
     fn draw(&self, renderer: &Renderer);
     fn move_horizontally(&mut self, x: i16);
+    fn right(&self) -> i16;
 }
 
 pub struct Barrier {
@@ -136,6 +138,10 @@ impl Obstacle for Barrier {
 
     fn move_horizontally(&mut self, x: i16) {
         self.image.move_horizontally(x);
+    }
+
+    fn right(&self) -> i16 {
+        self.image.right()
     }
 }
 
@@ -708,6 +714,13 @@ impl Obstacle for Platform {
                 boy.knock_out();
             }
         }
+    }
+
+    fn right(&self) -> i16 {
+        self.bounding_boxes()
+            .last()
+            .unwrap_or(&Rect::default())
+            .right()
     }
 }
 
