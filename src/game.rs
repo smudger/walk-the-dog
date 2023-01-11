@@ -5,6 +5,7 @@ use crate::{browser, engine};
 use crate::engine::{Rect, KeyState, Image, Point, Sheet, Cell, SpriteSheet};
 use web_sys::HtmlImageElement;
 use self::red_hat_boy_states::*;
+use std::rc::Rc;
 
 const HEIGHT: i16 = 600;
 const LOW_PLATFORM: i16 = 420;
@@ -20,6 +21,7 @@ pub struct Walk {
     boy: RedHatBoy,
     backgrounds: [Image; 2],
     obstacles: Vec<Box<dyn Obstacle>>,
+    obstacle_sheet: Rc<SpriteSheet>,
 }
 
 impl Walk {
@@ -47,12 +49,13 @@ impl Game for WalkTheDog {
                 let background = engine::load_image("BG.png").await?;
                 let background_width = background.width() as i16;
                 let stone = engine::load_image("Stone.png").await?;
-                let platform_sheet = browser::fetch_json("tiles.json").await?;
+                let tiles = browser::fetch_json("tiles.json").await?;
+                let sprite_sheet = Rc::new(SpriteSheet::new(
+                    tiles.into_serde::<Sheet>()?,
+                    engine::load_image("tiles.png").await?,
+                ));
                 let platform = Platform::new(
-                    SpriteSheet::new(
-                        platform_sheet.into_serde::<Sheet>()?,
-                        engine::load_image("tiles.png").await?,
-                    ),
+                    sprite_sheet.clone(),
                     Point { x: FIRST_PLATFORM, y: HIGH_PLATFORM },
                 );
                 Ok(Box::new(WalkTheDog::Loaded(Walk {
@@ -65,6 +68,7 @@ impl Game for WalkTheDog {
                         Box::new(Barrier::new(Image::new(stone, Point { x: 150, y: 546 }))),
                         Box::new(platform),
                     ],
+                    obstacle_sheet: sprite_sheet,
                 })))
             },
             WalkTheDog::Loaded(_) => Err(anyhow!("Error: Game is already initialized.")),
@@ -676,7 +680,7 @@ mod red_hat_boy_states {
 }
 
 pub struct Platform {
-    sheet: SpriteSheet,
+    sheet: Rc<SpriteSheet>,
     position: Point,
 }
 
@@ -725,7 +729,7 @@ impl Obstacle for Platform {
 }
 
 impl Platform {
-    fn new(sheet: SpriteSheet, position: Point) -> Self {
+    pub fn new(sheet: Rc<SpriteSheet>, position: Point) -> Self {
         Platform {
             sheet,
             position,
