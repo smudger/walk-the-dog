@@ -6,6 +6,7 @@ use crate::game::WalkTheDog;
 mod browser;
 mod engine;
 mod game;
+mod segments;
 
 // This is like the `main` function, except for JavaScript.
 #[wasm_bindgen(start)]
