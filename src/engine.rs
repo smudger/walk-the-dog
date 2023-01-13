@@ -1,4 +1,4 @@
-use web_sys::{HtmlImageElement, CanvasRenderingContext2d};
+use web_sys::{HtmlElement, HtmlImageElement, CanvasRenderingContext2d};
 use anyhow::{anyhow, Result};
 use wasm_bindgen::{closure::Closure, JsValue, JsCast};
 use futures::channel::oneshot::channel;
@@ -349,4 +349,14 @@ impl Audio {
 #[derive(Clone)]
 pub struct Sound {
     buffer: AudioBuffer,
+}
+
+pub fn add_click_handler(elem: HtmlElement) -> UnboundedReceiver<()> {
+    let (mut click_sender, click_receiver) = unbounded();
+    let on_click = browser::closure_wrap(Box::new(move || {
+        click_sender.start_send(());
+    }) as Box<dyn FnMut()>);
+    elem.set_onclick(Some(on_click.as_ref().unchecked_ref()));
+    on_click.forget();
+    click_receiver
 }

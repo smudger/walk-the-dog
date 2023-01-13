@@ -1,4 +1,4 @@
-use web_sys::{Window, Document, HtmlCanvasElement, CanvasRenderingContext2d, Response, HtmlImageElement};
+use web_sys::{Window, Document, HtmlCanvasElement, CanvasRenderingContext2d, Response, HtmlImageElement, Element};
 use anyhow::{anyhow, Result};
 use wasm_bindgen::{closure::{Closure, WasmClosureFnOnce, WasmClosure}, JsCast, JsValue};
 use futures::Future;
@@ -113,4 +113,29 @@ pub fn now() -> Result<f64> {
         .performance()
         .ok_or_else(|| anyhow!("Performance object not found."))?
         .now())
+}
+
+pub fn draw_ui(html: &str) -> Result<()> {
+    find_ui()?
+        .insert_adjacent_html("afterbegin", html)
+        .map_err(|err| anyhow!("Could not insert html {:#?}", err))
+}
+
+pub fn hide_ui() -> Result<()> {
+    let ui = find_ui()?;
+
+    if let Some(child) = ui.first_child() {
+        ui.remove_child(&child)
+            .map(|_removed_child| ())
+            .map_err(|err| anyhow!("Failed to remove child {:#?}", err))
+    } else {
+        Ok(())
+    }
+}
+
+fn find_ui() -> Result<Element> {
+    document().and_then(|doc| {
+        doc.get_element_by_id("ui")
+            .ok_or_else(|| anyhow!("UI element not found."))
+    })
 }
