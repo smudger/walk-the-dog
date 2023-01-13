@@ -96,7 +96,38 @@ impl From<ReadyEndState> for WalkTheDogStateMachine {
 }
 
 impl WalkTheDogState<Walking> {
-    fn update(self, keystate: &KeyState) -> WalkTheDogState<Walking> {
+    fn update(mut self, keystate: &KeyState) -> WalkTheDogState<Walking> {
+        if keystate.is_pressed("ArrowDown") {
+            self.walk.boy.slide();
+        }
+        if keystate.is_pressed("Space") {
+            self.walk.boy.jump();
+        }
+
+        self.walk.boy.update();
+
+        let walking_speed = self.walk.velocity();
+        let [first_background, second_background] = &mut self.walk.backgrounds;
+        first_background.move_horizontally(walking_speed);
+        second_background.move_horizontally(walking_speed);
+        if first_background.right() < 0 {
+            first_background.set_x(second_background.right());
+        }
+        if second_background.right() < 0 {
+            second_background.set_x(first_background.right());
+        }
+
+        self.walk.obstacles.retain(|obstacle| obstacle.right() > 0);
+        self.walk.obstacles.iter_mut().for_each(|obstacle| {
+            obstacle.move_horizontally(walking_speed);
+            obstacle.check_intersection(&mut self.walk.boy);
+        });
+
+        if self.walk.timeline < TIMELINE_MINIMUM {
+            self.walk.generate_next_segment()
+        } else {
+            self.walk.timeline += walking_speed;
+        }
         self
     }
 }
@@ -235,40 +266,6 @@ impl Game for WalkTheDog {
         if let Some(machine) = self.machine.take() {
             self.machine.replace(machine.update(keystate));
 
-            // if keystate.is_pressed("ArrowRight") {
-            //     walk.boy.run_right();
-            // }
-            // if keystate.is_pressed("ArrowDown") {
-            //     walk.boy.slide();
-            // }
-            // if keystate.is_pressed("Space") {
-            //     walk.boy.jump();
-            // }
-
-            // walk.boy.update();
-
-            // let velocity = walk.velocity();
-            // let [first_background, second_background] = &mut walk.backgrounds;
-            // first_background.move_horizontally(velocity);
-            // second_background.move_horizontally(velocity);
-            // if first_background.right() < 0 {
-            //     first_background.set_x(second_background.right());
-            // }
-            // if second_background.right() < 0 {
-            //     second_background.set_x(first_background.right());
-            // }
-
-            // walk.obstacles.retain(|obstacle| obstacle.right() > 0);
-            // walk.obstacles.iter_mut().for_each(|obstacle| {
-            //     obstacle.move_horizontally(velocity);
-            //     obstacle.check_intersection(&mut walk.boy);
-            // });
-
-            // if walk.timeline < TIMELINE_MINIMUM {
-            //     walk.generate_next_segment()
-            // } else {
-            //     walk.timeline += velocity;
-            // }
         }
         assert!(self.machine.is_some());
     }
