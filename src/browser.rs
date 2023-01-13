@@ -1,4 +1,4 @@
-use web_sys::{Window, Document, HtmlCanvasElement, CanvasRenderingContext2d, Response, HtmlImageElement, Element};
+use web_sys::{Window, Document, HtmlCanvasElement, CanvasRenderingContext2d, Response, HtmlImageElement, Element, HtmlElement};
 use anyhow::{anyhow, Result};
 use wasm_bindgen::{closure::{Closure, WasmClosureFnOnce, WasmClosure}, JsCast, JsValue};
 use futures::Future;
@@ -128,6 +128,11 @@ pub fn hide_ui() -> Result<()> {
         ui.remove_child(&child)
             .map(|_removed_child| ())
             .map_err(|err| anyhow!("Failed to remove child {:#?}", err))
+            .and_then(|_unit| {
+                canvas()?
+                    .focus()
+                    .map_err(|err| anyhow!("Could not set focus to canvas! {:#?}", err))
+            })
     } else {
         Ok(())
     }
@@ -138,4 +143,16 @@ fn find_ui() -> Result<Element> {
         doc.get_element_by_id("ui")
             .ok_or_else(|| anyhow!("UI element not found."))
     })
+}
+
+pub fn find_html_element_by_id(id: &str) -> Result<HtmlElement> {
+    document()
+        .and_then(|doc| {
+            doc.get_element_by_id(id)
+                .ok_or_else(|| anyhow!("Element with id {} not found", id))
+        })
+        .and_then(|element| {
+            element.dyn_into::<HtmlElement>()
+                .map_err(|err| anyhow!("Could not cast into HtmlElement {:#?}", err))
+        })
 }
