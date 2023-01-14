@@ -1,8 +1,7 @@
-use crate::engine::{Game, Renderer};
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use crate::{browser, engine};
-use crate::engine::{Rect, KeyState, Image, Point, Sheet, Cell, SpriteSheet, Sound, Audio};
+use crate::engine::{Game, Renderer, Rect, KeyState, Image, Point, Sheet, Cell, SpriteSheet, Sound, Audio};
 use crate::segments::{stone_and_platform, platform_and_stone};
 use web_sys::HtmlImageElement;
 use self::red_hat_boy_states::*;
