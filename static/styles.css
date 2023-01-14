@@ -7,6 +7,10 @@
     position: absolute;
 }
 
+body {
+    margin: 0;
+}
+
 button {
     font-family: 'Ken Future';
     background: -72px -60px url('Button.svg');
