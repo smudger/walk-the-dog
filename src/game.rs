@@ -62,6 +62,7 @@ impl WalkTheDogState<Ready> {
     fn update(mut self, keystate: &KeyState) -> ReadyEndState {
         self.walk.boy.update();
         if keystate.is_pressed("ArrowRight") {
+            error!("Pressed right");
             ReadyEndState::Complete(self.start_running())
         } else {
             ReadyEndState::Continue(self)
@@ -752,7 +753,7 @@ mod red_hat_boy_states {
 
         fn play_jump_sound(self) -> Self {
             if let Err(err) = self.audio.play_sound(&self.jump_sound) {
-                log!("Error playing jump sound {:#?}", err);
+                error!("Error playing jump sound {:#?}", err);
             }
             self
         }
