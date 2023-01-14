@@ -5,6 +5,7 @@ use futures::Future;
 use wasm_bindgen_futures::JsFuture;
 use js_sys::ArrayBuffer;
 
+#[allow(unused_macros)]
 macro_rules! log {
     ( $( $t:tt )* ) => {
         web_sys::console::log_1(&format!( $( $t )* ).into());

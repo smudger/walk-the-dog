@@ -8,6 +8,7 @@ use self::red_hat_boy_states::*;
 use std::rc::Rc;
 use rand::prelude::*;
 use futures::channel::mpsc::UnboundedReceiver;
+use gloo_utils::format::JsValueSerdeExt;
 
 const HEIGHT: i16 = 600;
 const TIMELINE_MINIMUM: i16 = 1000;
@@ -62,7 +63,6 @@ impl WalkTheDogState<Ready> {
     fn update(mut self, keystate: &KeyState) -> ReadyEndState {
         self.walk.boy.update();
         if keystate.is_pressed("ArrowRight") {
-            error!("Pressed right");
             ReadyEndState::Complete(self.start_running())
         } else {
             ReadyEndState::Continue(self)
@@ -175,7 +175,9 @@ impl WalkTheDogState<GameOver> {
     }
     
     fn new_game(self) -> WalkTheDogState<Ready> {
-        browser::hide_ui();
+        if let Err(err) = browser::hide_ui() {
+            error!("Error hiding the browser {:#?}", err);
+        }
         WalkTheDogState {
             _state: Ready,
             walk: Walk::reset(self.walk),
@@ -314,7 +316,7 @@ impl Game for WalkTheDog {
                 let background_music = audio.load_sound("background_song.mp3").await?;
                 audio.play_looping_sound(&background_music)?;
                 let rhb = RedHatBoy::new(
-                    json.into_serde::<Sheet>()?,
+                    json.into_serde()?,
                     engine::load_image("rhb.png").await?,
                     audio,
                     sound,
@@ -324,7 +326,7 @@ impl Game for WalkTheDog {
                 let stone = engine::load_image("Stone.png").await?;
                 let tiles = browser::fetch_json("tiles.json").await?;
                 let sprite_sheet = Rc::new(SpriteSheet::new(
-                    tiles.into_serde::<Sheet>()?,
+                    tiles.into_serde()?,
                     engine::load_image("tiles.png").await?,
                 ));
                 let starting_obstacles = stone_and_platform(stone.clone(), sprite_sheet.clone(), 0);
