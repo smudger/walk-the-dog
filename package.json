@@ -1,7 +1,7 @@
 {
   "author": "Louis Smith <15144861+smudger@users.noreply.github.com> (https://github.com/smudger)",
   "name": "@smudger/walk-the-dog",
-  "version": "v0.0.3-alpha",
+  "version": "v0.0.4-alpha",
   "description": "An endless runner game about a boy walking his dog.",
   "keywords": [
     "game",
