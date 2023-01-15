@@ -1,10 +1,13 @@
-<p align="center">
-# Walk The Dog
+<h1 align="center">Walk The Dog</h1>
 
-[![Build & Release](https://github.com/smudger/walk-the-dog/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/smudger/walk-the-dog/actions/workflows/build.yml)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/7135287c-8807-4aed-b528-78a8822573e5/deploy-status)](https://app.netlify.com/sites/walk-the-dog-smudger/deploys)
-[![npm version](https://badge.fury.io/js/@smudger%2Fwalk-the-dog.svg)](https://badge.fury.io/js/@smudger%2Fwalk-the-dog)
-</p>
+<div align="center">
+
+<a href="https://github.com/smudger/walk-the-dog/actions/workflows/build.yml">![Build & Release](https://github.com/smudger/walk-the-dog/actions/workflows/build.yml/badge.svg?branch=main)</a>
+<a href="https://app.netlify.com/sites/walk-the-dog-smudger/deploys">![Netlify Status](https://api.netlify.com/api/v1/badges/7135287c-8807-4aed-b528-78a8822573e5/deploy-status)</a>
+<a href="https://badge.fury.io/js/@smudger%2Fwalk-the-dog">![npm version](https://badge.fury.io/js/@smudger%2Fwalk-the-dog.svg)</a>
+
+</div>
+
 ___
 
 An endless runner about a boy walking his dog. The game from the Rust Games with WebAssembly book.
