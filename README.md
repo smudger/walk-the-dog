@@ -1,48 +1,53 @@
-## How to install
+# Walk The Dog
+
+An endless runner about a boy walking his dog. The game from the Rust Games with WebAssembly book.
+
+## Getting Started
 
 ```sh
 npm install
-```
 
-## How to run in debug mode
-
-```sh
 # Builds the project and opens it in a new browser tab. Auto-reloads when the project changes.
-npm start
+npm run start
 ```
 
-## How to build in release mode
+## Testing
 
 ```sh
-# Builds the project and places it into the `dist` folder.
-npm run build
+# Run unit tests
+cargo test
+
+# Run integration tests
+wasm-pack test --headless --firefox
+
+# Run all tests
+npm run test
 ```
 
-## How to run unit tests
+## Releasing
+
+1. Ensure `package.json` version is correct.
+
+2. Create a tag with the desired version. This should match whatever is in `package.json`.
+```sh
+# e.g. git tag v0.3.2-alpha
+git tag <version>
+```
+
+3. Push tag to GitHub repo. This will trigger a release to be created and the package to be released to the [NPM registry](https://npmjs.com).
+```sh
+# e.g. git push origin v0.3.2-alpha
+git push origin <version>
+```
+
+4. Ensure the release notes are correct on the [GitHub repo](https://github.com/smudger/walk-the-dog/releases).
+
+## Troubleshooting
+
+If you are struggling to run the integration tests and use Firefox Developer Edition, you will need to add Firefox Developer Edition's firefox-bin to the path by running the following command.
 
 ```sh
-# Runs tests in Firefox
-npm test -- --firefox
-
-# Runs tests in Chrome
-npm test -- --chrome
-
-# Runs tests in Safari
-npm test -- --safari
+export PATH="$PATH:/Applications/Firefox Developer Edition.app/Contents/MacOS"
 ```
 
-## What does each file do?
-
-* `Cargo.toml` contains the standard Rust metadata. You put your Rust dependencies in here. You must change this file with your details (name, description, version, authors, categories)
-
-* `package.json` contains the standard npm metadata. You put your JavaScript dependencies in here. You must change this file with your details (author, name, version)
-
-* `webpack.config.js` contains the Webpack configuration. You shouldn't need to change this, unless you have very special needs.
-
-* The `js` folder contains your JavaScript code (`index.js` is used to hook everything into Webpack, you don't need to change it).
-
-* The `src` folder contains your Rust code.
-
-* The `static` folder contains any files that you want copied as-is into the final build. It contains an `index.html` file which loads the `index.js` file.
-
-* The `tests` folder contains your Rust unit tests.
+This ensures that geckodriver is able to find a valid Firefox binary to use to run the tests.
